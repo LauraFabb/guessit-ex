@@ -10,7 +10,7 @@ const PORT = 3000;
 // The URL used to connect to the PostgreSQL database. It has the shape
 // postgresql://USER:PASSWORD@HOST:PORT/DATABASE. Change the password to match
 // the one you set when you ran schema.sql.
-const DATABASE_URL = 'postgresql://guessit:change-me-now@localhost:5432/guessit';
+const DATABASE_URL = 'postgresql://guessit:guessit-2026w@localhost:5432/guessit';
 
 // The colour used for the page's accent (buttons, title). Change it if you
 // like a different look.
@@ -79,7 +79,12 @@ app.get('/', async (req, res, next) => {
     // Select the games that have been won (found_at is not null), best first:
     // the fewest attempts first, and among games with the same number of
     // attempts, the one found earliest first. Return only the top ten.
-    const leaderboardQuery = ''; // <-- IMPLEMENT ME
+   const leaderboardQuery = `
+  SELECT * FROM game
+  WHERE found_at IS NOT NULL
+  ORDER BY attempts ASC, found_at ASC
+  LIMIT 10
+`;// <-- IMPLEMENT ME
 
     // If the leaderboard cannot be loaded, for example because the database is
     // not running, the page is shown anyway and the error is printed in the
@@ -174,8 +179,13 @@ app.post('/games/:id/guesses', async (req, res, next) => {
       // Add one to the game's attempts. When the guess equals the secret, also
       // set found_at to the current time (NOW()); otherwise leave found_at
       // unchanged. The game to update is `game` (its ID is `game.id`).
-      const updateQuery = ''; // <-- IMPLEMENT ME
-      await db.query(updateQuery);
+      const updateQuery = `
+  UPDATE game
+  SET attempts = attempts + 1,
+      found_at = CASE WHEN secret = $1 THEN NOW() ELSE found_at END
+  WHERE id = $2
+`;
+await db.query(updateQuery, [guess, game.id]);
     }
 
     res.redirect('/games/' + game.id + '?guess=' + encodeURIComponent(req.body.guess || ''));
@@ -196,8 +206,8 @@ app.post('/games/:id/delete', async (req, res, next) => {
     // Give up.
     //
     // Delete `game` from the database (its ID is `game.id`).
-    const deleteQuery = ''; // <-- IMPLEMENT ME
-    await db.query(deleteQuery);
+  const deleteQuery = 'DELETE FROM game WHERE id = $1';
+await db.query(deleteQuery, [game.id]);
 
     res.redirect('/');
   } catch (err) {
